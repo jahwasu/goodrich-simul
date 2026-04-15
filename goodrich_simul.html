@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GoodRich 수수료 시뮬레이터</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange: #F5A623;
+    --orange-light: #FDF3E3;
+    --orange-mid: #FAD49A;
+    --navy: #1A2340;
+    --navy-light: #2D3A5A;
+    --gray-bg: #F4F6FB;
+    --gray-border: #E2E7F0;
+    --gray-text: #7A8399;
+    --white: #FFFFFF;
+    --green: #2ECC71;
+    --green-light: #E8FAF1;
+    --red: #E74C3C;
+    --red-light: #FEF0EF;
+    --blue: #3498DB;
+    --blue-light: #EBF5FB;
+    --purple: #9B59B6;
+    --purple-light: #F5EEF8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--gray-bg);
+    color: var(--navy);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--navy);
+    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.2);
+  }
+  .logo-mark {
+    width: 24px; height: 24px;
+    background: var(--orange);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 11px; color: white;
+  }
+  .header-title { color: white; font-size: 13px; font-weight: 700; }
+  .header-sub { color: rgba(255,255,255,0.5); font-size: 10px; margin-top: 0; }
+  .header-badge {
+    margin-left: auto;
+    background: rgba(245,166,35,0.2);
+    color: var(--orange);
+    border: 1px solid rgba(245,166,35,0.4);
+    border-radius: 20px;
+    padding: 2px 8px;
+    font-size: 10px; font-weight: 500;
+  }
+
+  .container { max-width: 1280px; margin: 0 auto; padding: 6px 14px; }
+
+  /* TABS */
+  .rank-tabs {
+    display: flex; gap: 5px; margin-bottom: 6px;
+    background: white;
+    padding: 3px;
+    border-radius: 10px;
+    border: 1px solid var(--gray-border);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+  }
+  .rank-tab {
+    flex: 1; padding: 5px 8px;
+    border: none; background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 12px; font-weight: 500;
+    color: var(--gray-text);
+    transition: all 0.2s;
+    display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 5px;
+  }
+  .rank-tab .rank-icon { font-size: 14px; }
+  .rank-tab.active {
+    background: var(--navy);
+    color: white;
+    box-shadow: 0 2px 8px rgba(26,35,64,0.25);
+  }
+  .rank-tab:not(.active):hover { background: var(--gray-bg); color: var(--navy); }
+
+  /* LAYOUT */
+  .sim-layout {
+    display: grid;
+    grid-template-columns: 310px 1fr;
+    gap: 10px;
+    align-items: stretch;
+    height: calc(100vh - 52px);
+  }
+  @media (max-width: 760px) { .sim-layout { grid-template-columns: 1fr; height: auto; } }
+
+  /* 좌측 패널: 전체 높이 채움 */
+  .sim-layout > div:first-child { display: flex; flex-direction: column; }
+  .sim-layout > div:first-child .panel { flex: 1; overflow-y: auto; }
+
+  /* 우측: flex column으로 탭 + 하단 그리드 */
+  .sim-layout > div:last-child { display: flex; flex-direction: column; min-height: 0; }
+  #right-lower-grid {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 10px;
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+  }
+  #rank-config-panel { overflow-y: auto; }
+  #result-panel { overflow-y: auto; }
+
+  /* PANEL */
+  .panel {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--gray-border);
+    padding: 10px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+  }
+  .panel-title {
+    font-size: 12px; font-weight: 700; color: var(--navy);
+    margin-bottom: 5px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .panel-title::before {
+    content: '';
+    width: 3px; height: 14px;
+    background: var(--orange);
+    border-radius: 2px;
+    display: block;
+  }
+
+  /* INPUT GROUPS */
+  .input-section { margin-bottom: 7px; }
+  .input-label {
+    font-size: 12px; font-weight: 500; color: var(--gray-text);
+    margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .product-row {
+    display: grid; grid-template-columns: 1fr auto 100px;
+    gap: 6px; margin-bottom: 6px; align-items: center;
+  }
+  .product-name {
+    font-size: 12px; color: var(--navy);
+    font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .product-meta {
+    font-size: 11px; color: var(--gray-text);
+    white-space: nowrap;
+    line-height: 1.6;
+    text-align: right;
+  }
+  .type-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-life { background: #3498DB; }
+  .dot-nonlife { background: #E67E22; }
+
+  .amount-input {
+    width: 100%;
+    padding: 5px 10px;
+    border: 1.5px solid var(--gray-border);
+    border-radius: 8px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13px; font-weight: 500;
+    color: var(--navy);
+    text-align: right;
+    transition: border-color 0.2s;
+    background: var(--gray-bg);
+  }
+  .amount-input:focus {
+    outline: none;
+    border-color: var(--orange);
+    background: white;
+  }
+  .unit-label { display: none; }
+  .product-meta { font-size: 11px; color: var(--gray-text); white-space: nowrap; line-height: 1.6; text-align: right; }
+
+  /* 총 보험료 바 */
+  #total-premium-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--navy);
+    border-radius: 10px;
+    padding: 6px 12px;
+    margin-bottom: 8px;
+  }
+  .total-premium-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.04em;
+  }
+  .total-premium-value {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  #total-premium-display {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--orange);
+    transition: all 0.2s;
+  }
+  .total-premium-unit {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.7);
+  }
+  .total-premium-perf {
+    font-size: 11px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.5);
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+  .total-premium-perf span {
+    color: var(--orange);
+    font-weight: 500;
+  }
+
+  .product-category-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--navy);
+    background: var(--gray-bg);
+    border-radius: 8px;
+    padding: 3px 8px;
+    margin-bottom: 5px;
+  }
+  .cat-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* TOGGLE */
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 8px;
+    background: var(--gray-bg);
+    border-radius: 8px;
+    margin-bottom: 4px;
+  }
+  .toggle-label { font-size: 12px; font-weight: 500; color: var(--navy); }
+  .toggle-sub { font-size: 10px; color: var(--gray-text); margin-top: 1px; }
+  .toggle {
+    position: relative; width: 36px; height: 20px; cursor: pointer;
+    flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0;
+    background: var(--gray-border);
+    border-radius: 24px;
+    transition: 0.3s;
+  }
+  .toggle-slider::before {
+    content: ''; position: absolute;
+    width: 14px; height: 14px;
+    background: white;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: 0.3s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .toggle input:checked + .toggle-slider { background: var(--orange); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+  /* TEAM MEMBER */
+  .member-card {
+    border: 1.5px solid var(--gray-border);
+    border-radius: 10px;
+    padding: 7px;
+    margin-bottom: 5px;
+    transition: border-color 0.2s;
+  }
+  .member-card:hover { border-color: var(--orange-mid); }
+  .member-header {
+    display: flex; align-items: center; gap: 5px;
+    margin-bottom: 5px;
+  }
+  .member-avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: white;
+    flex-shrink: 0;
+  }
+  .member-info { flex: 1; }
+  .member-name { font-size: 12px; font-weight: 500; }
+  .member-type { font-size: 11px; color: var(--gray-text); }
+  .member-remove {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 1px solid var(--gray-border);
+    background: white; cursor: pointer;
+    color: var(--gray-text); font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .member-remove:hover { background: var(--red-light); color: var(--red); border-color: var(--red); }
+
+  .add-member-btn {
+    width: 100%; padding: 6px;
+    border: 1.5px dashed var(--gray-border);
+    border-radius: 8px;
+    background: transparent; cursor: pointer;
+    color: var(--gray-text); font-size: 12px;
+    font-family: 'Noto Sans KR', sans-serif;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .add-member-btn:hover { border-color: var(--orange); color: var(--orange); background: var(--orange-light); }
+
+  /* RESULT PANEL */
+  .result-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .total-badge {
+    background: var(--navy);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+  }
+  .total-amount { font-size: 20px; font-weight: 700; color: var(--orange); }
+  .total-label { font-size: 12px; color: var(--gray-text); }
+
+  .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 5px; margin-bottom: 8px; }
+  .result-card {
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid;
+    position: relative; overflow: hidden;
+  }
+  .result-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .rc-blue { background: var(--blue-light); border-color: #BEE0F5; }
+  .rc-blue::before { background: var(--blue); }
+  .rc-green { background: var(--green-light); border-color: #BFEAD7; }
+  .rc-green::before { background: var(--green); }
+  .rc-orange { background: var(--orange-light); border-color: var(--orange-mid); }
+  .rc-orange::before { background: var(--orange); }
+  .rc-purple { background: var(--purple-light); border-color: #D7BCF0; }
+  .rc-purple::before { background: var(--purple); }
+  .rc-red { background: var(--red-light); border-color: #F5C6C3; }
+  .rc-red::before { background: var(--red); }
+  .rc-gray { background: var(--gray-bg); border-color: var(--gray-border); }
+  .rc-gray::before { background: var(--gray-text); }
+
+  .result-card-label { font-size: 10px; font-weight: 500; color: var(--gray-text); margin-bottom: 3px; }
+  .result-card-value { font-size: 13px; font-weight: 700; color: var(--navy); }
+  .result-card-sub { font-size: 10px; color: var(--gray-text); margin-top: 2px; }
+
+  /* BREAKDOWN TABLE */
+  .breakdown-table { width: 100%; border-collapse: collapse; }
+  .breakdown-table th {
+    font-size: 10px; font-weight: 500; color: var(--gray-text);
+    text-align: left; padding: 3px 6px;
+    border-bottom: 1px solid var(--gray-border);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .breakdown-table td {
+    padding: 4px 6px;
+    font-size: 11px;
+    border-bottom: 1px solid var(--gray-bg);
+    vertical-align: top;
+  }
+  .breakdown-table tr:last-child td { border-bottom: none; }
+  .breakdown-table .subtotal td {
+    font-weight: 700; background: var(--gray-bg);
+    border-radius: 8px;
+  }
+  .tag-sm {
+    display: inline-block; font-size: 10px; padding: 2px 7px;
+    border-radius: 10px; font-weight: 500;
+    vertical-align: middle;
+  }
+  .tag-life { background: #D6EAF8; color: #1A6FA8; }
+  .tag-non { background: #FEF0E3; color: #B7470F; }
+  .tag-skip { background: #F0F0F0; color: #999; }
+  .text-right { text-align: right; }
+  .text-positive { color: var(--green); font-weight: 600; }
+  .text-negative { color: var(--red); }
+  .text-muted { color: var(--gray-text); }
+
+  /* WARN */
+  .warn-banner {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 5px 10px;
+    background: #FFF8EC;
+    border: 1px solid #FAD49A;
+    border-radius: 10px;
+    margin-top: 8px;
+  }
+  .warn-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .warn-text { font-size: 11px; color: #7D4700; line-height: 1.5; }
+
+  .info-banner {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 5px 10px;
+    background: var(--blue-light);
+    border: 1px solid #BEE0F5;
+    border-radius: 10px;
+    margin-top: 8px;
+  }
+  .info-text { font-size: 11px; color: #1A5580; line-height: 1.5; }
+
+  /* MEMBER TYPE SELECT */
+  select {
+    width: 100%;
+    padding: 5px 8px;
+    border: 1.5px solid var(--gray-border);
+    border-radius: 8px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 12px;
+    color: var(--navy);
+    background: var(--gray-bg);
+    cursor: pointer;
+  }
+  select:focus { outline: none; border-color: var(--orange); }
+
+  .section-divider {
+    height: 1px; background: var(--gray-border);
+    margin: 6px 0;
+  }
+
+  .calc-btn {
+    width: 100%;
+    padding: 9px;
+    background: var(--orange);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 6px;
+    box-shadow: 0 2px 8px rgba(245,166,35,0.3);
+  }
+  .calc-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(245,166,35,0.5);
+  }
+  .calc-btn:active { transform: translateY(0); }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-mark">G</div>
+  <div>
+    <div class="header-title">GoodRich 수수료 시뮬레이터</div>
+    <div class="header-sub">RP Channel 영업관리 제 지침 2025.04 기준</div>
+  </div>
+  <div class="header-badge">대외비</div>
+</div>
+
+<div class="container">
+
+  <div class="sim-layout">
+
+    <!-- LEFT: 공통 입력 (고정) -->
+    <div>
+      <div class="panel">
+        <div class="panel-title" style="font-size:13px;">본인 판매 설정</div>
+
+        <!-- 총 보험료 표기 -->
+        <div id="total-premium-bar">
+          <div class="total-premium-label">월 총 납입보험료</div>
+          <div class="total-premium-value"><span id="total-premium-display">300</span><span class="total-premium-unit">만원</span><span class="total-premium-perf">(평가업적 <span id="total-perf-display">280</span>만원)</span></div>
+        </div>
+
+        <!-- 상품별 입력 -->
+        <div class="input-section">
+          <div class="input-label">월 판매 (납입보험료 기준)</div>
+
+          <div class="product-category-title">
+            <span class="cat-dot dot-life"></span>생보 종신
+          </div>
+          <div style="margin-bottom:6px;">
+            <select id="sel-p1" onchange="onProductChange('p1')" style="width:100%;font-size:12px;padding:5px 8px;border:0.5px solid #ddd;border-radius:8px;background:#fff;color:#222;margin-bottom:4px;">
+              <option value="0">ABL · 우리WON세븐종신 (1,450% / 118%)</option>
+              <option value="1">한화생명 · 제로백H종신 (1,461% / 119%)</option>
+              <option value="2">iM라이프 · iM PLUS세븐UP종신 (1,502% / 116%)</option>
+            </select>
+          </div>
+          <div class="product-row">
+            <div class="product-name">
+              <span class="type-dot dot-life"></span>
+              <span id="name-p1">ABL 우리WON세븐종신</span>
+            </div>
+            <div class="product-meta" id="meta-p1">수수료율 1,450%<br>평가업적 118%</div>
+            <input class="amount-input" type="number" id="p1" value="100" min="0" step="10" onchange="calculate()">
+          </div>
+
+          <div class="product-category-title" style="margin-top:14px;">
+            <span class="cat-dot dot-life"></span>생보 연금
+          </div>
+          <div style="margin-bottom:6px;">
+            <select id="sel-p2" onchange="onProductChange('p2')" style="width:100%;font-size:12px;padding:5px 8px;border:0.5px solid #ddd;border-radius:8px;background:#fff;color:#222;margin-bottom:4px;">
+              <option value="0">IBK연금보험 · 평생보증받는 변액연금 (543% / 61%)</option>
+              <option value="1">iM라이프 · iM마스터프로변액연금 (663% / 62%)</option>
+            </select>
+          </div>
+          <div class="product-row">
+            <div class="product-name">
+              <span class="type-dot dot-life"></span>
+              <span id="name-p2">IBK · 평생보증받는 변액연금</span>
+            </div>
+            <div class="product-meta" id="meta-p2">수수료율 543%<br>평가업적 61%</div>
+            <input class="amount-input" type="number" id="p2" value="100" min="0" step="10" onchange="calculate()">
+          </div>
+
+          <div class="product-category-title" style="margin-top:14px;">
+            <span class="cat-dot dot-nonlife"></span>손보 건강
+          </div>
+          <div style="margin-bottom:6px;">
+            <select id="sel-p3" onchange="onProductChange('p3')" style="width:100%;font-size:12px;padding:5px 8px;border:0.5px solid #ddd;border-radius:8px;background:#fff;color:#222;margin-bottom:4px;">
+              <option value="0">메리츠 · 간편/어린이/종합 (1,850% / 100%)</option>
+              <option value="1">흥국화재 · 플래티넘건강리셋 (1,550% / 100%)</option>
+            </select>
+          </div>
+          <div class="product-row">
+            <div class="product-name">
+              <span class="type-dot dot-nonlife"></span>
+              <span id="name-p3">메리츠 · 간편/어린이/종합</span>
+            </div>
+            <div class="product-meta" id="meta-p3">수수료율 1,850%<br>평가업적 100%</div>
+            <input class="amount-input" type="number" id="p3" value="100" min="0" step="10" onchange="calculate()">
+          </div>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <!-- 조건 설정 -->
+        <div class="input-section">
+          <div class="input-label">수수료 조건</div>
+
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-label">정착지원금 수령 중</div>
+              <div class="toggle-sub">고능률·장기고능률 24개월 부지급</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="jungchak" onchange="calculate()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row" id="toggle-longterm-row">
+            <div>
+              <div class="toggle-label">12차월 경과 (장기고능률)</div>
+              <div class="toggle-sub">13차월~24차월 정착지원금과 병행 수령 가능</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="longterm" onchange="calculate()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <button class="calc-btn" onclick="calculate()">💰 계산</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: 직급 탭 + 직급별 설정 + 결과 -->
+    <div style="display:flex; flex-direction:column; gap:0;">
+
+      <!-- 직급 탭 (우측 상단) -->
+      <div class="rank-tabs">
+        <button class="rank-tab active" onclick="setRank('rp')" id="tab-rp">
+          <span class="rank-icon">👤</span>
+          <span>설계사 (RP)</span>
+        </button>
+        <button class="rank-tab" onclick="setRank('sl')" id="tab-sl">
+          <span class="rank-icon">👥</span>
+          <span>SL</span>
+        </button>
+        <button class="rank-tab" onclick="setRank('bm')" id="tab-bm">
+          <span class="rank-icon">🏢</span>
+          <span>지점장 (BM)</span>
+        </button>
+        <button class="rank-tab" onclick="setRank('jungchak')" id="tab-jungchak" style="border-left:1px solid var(--gray-border); margin-left:4px;">
+          <span class="rank-icon">📋</span>
+          <span>정착교육비</span>
+        </button>
+      </div>
+
+      <!-- 직급별 추가 설정 + 결과 (가로 분할) -->
+      <!-- 정착교육비 제도 안내 패널 (탭 클릭 시 표시) -->
+      <div id="jungchak-panel" class="hidden" style="flex:1; overflow-y:auto;">
+        <div class="panel" style="max-height:none;">
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+
+            <!-- 지급 기준 -->
+            <div style="background:var(--navy); border-radius:10px; padding:10px 12px; color:white;">
+              <div style="font-size:11px; font-weight:700; color:var(--orange); margin-bottom:8px; letter-spacing:0.05em;">지급 기준 (직전소득 기준)</div>
+              <table style="width:100%; font-size:11px; border-collapse:collapse;">
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.15);">
+                  <th style="padding:4px 6px; text-align:left; color:rgba(255,255,255,0.6); font-weight:500;">직전소득</th>
+                  <th style="padding:4px 6px; text-align:right; color:rgba(255,255,255,0.6); font-weight:500;">지급가능금액</th>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.08);">
+                  <td style="padding:4px 6px;">2,000만원 이상</td>
+                  <td style="padding:4px 6px; text-align:right; color:var(--orange);">직전소득의 최대 20%</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.08);">
+                  <td style="padding:4px 6px;">4,000만원 이상</td>
+                  <td style="padding:4px 6px; text-align:right; color:var(--orange);">직전소득의 최대 30%</td>
+                </tr>
+                <tr>
+                  <td style="padding:4px 6px;">7,000만원 이상</td>
+                  <td style="padding:4px 6px; text-align:right; color:var(--orange);">직전소득의 최대 40%</td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- Option 유형 -->
+            <div style="background:var(--gray-bg); border-radius:10px; padding:10px 12px;">
+              <div style="font-size:11px; font-weight:700; color:var(--navy); margin-bottom:8px; letter-spacing:0.05em;">평가 Option 유형</div>
+              <table style="width:100%; font-size:11px; border-collapse:collapse;">
+                <tr style="border-bottom:1px solid var(--gray-border);">
+                  <th style="padding:3px 5px; text-align:left; color:var(--gray-text); font-weight:500;"></th>
+                  <th style="padding:3px 5px; text-align:center; color:var(--gray-text); font-weight:500;">Option-1</th>
+                  <th style="padding:3px 5px; text-align:center; color:var(--gray-text); font-weight:500;">Option-2</th>
+                  <th style="padding:3px 5px; text-align:center; color:var(--gray-text); font-weight:500;">Option-3</th>
+                </tr>
+                <tr style="border-bottom:1px solid var(--gray-border);">
+                  <td style="padding:3px 5px; color:var(--gray-text);">평가기간</td>
+                  <td style="padding:3px 5px; text-align:center; font-weight:500;">12개월</td>
+                  <td style="padding:3px 5px; text-align:center; font-weight:500;">18개월</td>
+                  <td style="padding:3px 5px; text-align:center; font-weight:500;">24개월</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--gray-border);">
+                  <td style="padding:3px 5px; color:var(--gray-text);">최종목표</td>
+                  <td style="padding:3px 5px; text-align:center; color:#E67E22; font-weight:600;">60%</td>
+                  <td style="padding:3px 5px; text-align:center; color:#E67E22; font-weight:600;">70%</td>
+                  <td style="padding:3px 5px; text-align:center; color:#E67E22; font-weight:600;">80%</td>
+                </tr>
+                <tr>
+                  <td style="padding:3px 5px; color:var(--gray-text);">위촉의무</td>
+                  <td style="padding:3px 5px; text-align:center;">2년</td>
+                  <td style="padding:3px 5px; text-align:center;">3년</td>
+                  <td style="padding:3px 5px; text-align:center;">3년</td>
+                </tr>
+              </table>
+              <div style="margin-top:6px; font-size:10px; color:var(--gray-text);">※ 평가기간 중 고능률·장기고능률 미지급</div>
+            </div>
+          </div>
+
+          <!-- 시뮬레이터 -->
+          <div style="background:var(--gray-bg); border-radius:10px; padding:12px; margin-bottom:10px;">
+            <div style="font-size:12px; font-weight:700; color:var(--navy); margin-bottom:10px;">💰 정착교육비 지급가능금액 계산</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px;">
+              <div>
+                <div style="font-size:11px; color:var(--gray-text); margin-bottom:4px;">직전 연소득 (만원)</div>
+                <input class="amount-input" type="number" id="jc-income" value="5000" min="0" step="100" oninput="calcJungchak()" style="font-size:12px; padding:5px 8px;">
+              </div>
+              <div>
+                <div style="font-size:11px; color:var(--gray-text); margin-bottom:4px;">신청 비율 (%)</div>
+                <select id="jc-ratio" onchange="calcJungchak()" style="font-size:11px; padding:5px 8px;">
+                  <option value="20">20%</option>
+                  <option value="30" selected>30%</option>
+                  <option value="40">40%</option>
+                  <option value="50">50% (1억 초과)</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:11px; color:var(--gray-text); margin-bottom:4px;">Option 유형</div>
+                <select id="jc-option" onchange="calcJungchak()" style="font-size:11px; padding:5px 8px;">
+                  <option value="1">Option-1 (12개월)</option>
+                  <option value="2">Option-2 (18개월)</option>
+                  <option value="3" selected>Option-3 (24개월)</option>
+                </select>
+              </div>
+            </div>
+            <div id="jc-result" style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;"></div>
+          </div>
+
+          <!-- 중간평가 기준 -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+            <div style="background:var(--blue-light); border-radius:10px; padding:10px 12px; border:1px solid #BEE0F5;">
+              <div style="font-size:11px; font-weight:700; color:#0C447C; margin-bottom:7px;">중간평가 기준</div>
+              <table style="width:100%; font-size:10px; border-collapse:collapse;">
+                <tr style="border-bottom:1px solid #BEE0F5;">
+                  <th style="padding:3px 4px; text-align:left; color:#185FA5; font-weight:500;"></th>
+                  <th style="padding:3px 4px; text-align:center; color:#185FA5; font-weight:500;">1차 (7차월)</th>
+                  <th style="padding:3px 4px; text-align:center; color:#185FA5; font-weight:500;">2차 (10차월)</th>
+                </tr>
+                <tr style="border-bottom:1px solid #E6F1FB;">
+                  <td style="padding:3px 4px; color:#185FA5;">Option-1</td>
+                  <td style="padding:3px 4px; text-align:center;">최종목표의 25%</td>
+                  <td style="padding:3px 4px; text-align:center;">최종목표의 35%</td>
+                </tr>
+                <tr style="border-bottom:1px solid #E6F1FB;">
+                  <td style="padding:3px 4px; color:#185FA5;">Option-2</td>
+                  <td style="padding:3px 4px; text-align:center;">최종목표의 20%</td>
+                  <td style="padding:3px 4px; text-align:center;">최종목표의 25%</td>
+                </tr>
+                <tr>
+                  <td style="padding:3px 4px; color:#185FA5;">Option-3</td>
+                  <td style="padding:3px 4px; text-align:center;">최종목표의 15%</td>
+                  <td style="padding:3px 4px; text-align:center;">최종목표의 20%</td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="background:var(--red-light); border-radius:10px; padding:10px 12px; border:1px solid #F5C6C3;">
+              <div style="font-size:11px; font-weight:700; color:#A32D2D; margin-bottom:7px;">최종평가 환수 기준</div>
+              <table style="width:100%; font-size:10px; border-collapse:collapse;">
+                <tr style="border-bottom:1px solid #F5C6C3;">
+                  <th style="padding:3px 4px; text-align:center; color:#791F1F; font-weight:500;">달성률</th>
+                  <th style="padding:3px 4px; text-align:center; color:#791F1F; font-weight:500;">환수금액</th>
+                </tr>
+                <tr style="border-bottom:1px solid #FCEBEB;">
+                  <td style="padding:3px 4px; text-align:center; font-weight:600; color:#2ECC71;">100% 이상</td>
+                  <td style="padding:3px 4px; text-align:center;">없음</td>
+                </tr>
+                <tr style="border-bottom:1px solid #FCEBEB;">
+                  <td style="padding:3px 4px; text-align:center; font-weight:600; color:#E67E22;">50~100%</td>
+                  <td style="padding:3px 4px; text-align:center;">기지급금 × (1-달성률)</td>
+                </tr>
+                <tr>
+                  <td style="padding:3px 4px; text-align:center; font-weight:600; color:#E74C3C;">50% 미만</td>
+                  <td style="padding:3px 4px; text-align:center; color:#E74C3C; font-weight:600;">기지급금 100% 환수</td>
+                </tr>
+              </table>
+              <div style="margin-top:6px; font-size:10px; color:#A32D2D;">※ 유지율 80% 미만 시 추가 환수</div>
+            </div>
+          </div>
+
+
+
+        </div>
+      </div>
+
+      <div id="right-lower-grid">
+
+        <!-- 직급별 설정 패널 -->
+        <div class="panel" id="rank-config-panel">
+
+          <!-- 팀원 설정 (SL/BM) -->
+          <div id="team-section">
+            <!-- BM 전용 -->
+            <div id="bm-simple-input" class="hidden">
+              <div class="panel-title" style="font-size:12px; margin-bottom:8px;">지점 구성</div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 10px; background:var(--navy); border-radius:8px; margin-bottom:8px;">
+                <span style="font-size:11px; color:rgba(255,255,255,0.7);">본인 평가업적</span>
+                <span style="font-size:13px; font-weight:500; color:var(--orange);" id="bm-self-perf-display">—</span>
+              </div>
+
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; gap:6px;">
+                <span style="font-size:12px; color:var(--navy); font-weight:500; white-space:nowrap;">일반 지점원 수</span>
+                <input class="amount-input" type="number" id="bm-member-count" value="4" min="0" step="1" onchange="calculate()" style="width:80px; font-size:12px; padding:4px 6px;">
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; gap:6px;">
+                <span style="font-size:12px; color:var(--navy); font-weight:500; white-space:nowrap;">인당 평균 업적</span>
+                <input class="amount-input" type="number" id="bm-member-avg-perf" value="100" min="0" step="10" onchange="calculate()" style="width:80px; font-size:12px; padding:4px 6px;">
+              </div>
+              <div style="font-size:10px; color:var(--gray-text); text-align:right; margin-bottom:2px;">만원 / 인당</div>
+              <div id="bm-member-summary" style="margin-top:8px; font-size:11px; color:var(--gray-text); background:var(--gray-bg); border-radius:6px; padding:6px 10px; line-height:1.6;"></div>
+            </div>
+
+            <!-- BM 오버라이드 섹션 -->
+            <div id="bm-section" class="hidden" style="margin-top:8px;">
+              <div class="section-divider"></div>
+              <div class="input-label" style="font-size:11px;">Override 지급율</div>
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
+                <span style="font-size:11px; color:var(--navy); font-weight:500; white-space:nowrap;">지점 전체 업적</span>
+                <input class="amount-input" type="number" id="bm-total-perf" value="700" min="0" step="50" onchange="calculate()" style="width:80px; font-size:12px; padding:4px 6px;">
+              </div>
+              <div class="unit-label" style="font-size:10px;">300↑=90% | 700↑=100%+운영비</div>
+            </div>
+
+            <!-- SL 전용 -->
+            <div id="sl-detail-input" class="hidden">
+              <div class="panel-title" style="font-size:12px; margin-bottom:6px;">산하 팀원</div>
+              <div id="member-list"></div>
+              <button class="add-member-btn" onclick="addMember()" style="font-size:12px; padding:6px 10px;">
+                <span>＋</span> 팀원 추가
+              </button>
+            </div>
+
+            <!-- RP: 안내 -->
+            <div id="rp-info-panel">
+              <div class="panel-title" style="font-size:12px; margin-bottom:6px;">직급 안내</div>
+              <div style="font-size:11px; color:var(--gray-text); line-height:1.7;">
+                설계사(RP) 기준<br>
+                고능률: 생보 업적 × 구간율<br>
+                장기고능률: 전체 업적 × Grade율<br>
+                <br>SL 탭: 팀원 추가 가능<br>지점장 탭: 지점 구성 설정
+              </div>
+            </div>
+
+            <!-- 마케팅 임원 분기지원금 (전 직급 공통) -->
+            <div id="mkt-exec-section" style="margin-top:8px;">
+              <div class="section-divider"></div>
+              <div class="panel-title" style="font-size:12px; margin-bottom:6px;">마케팅 임원 분기지원금</div>
+              <div class="toggle-row" style="margin-bottom:6px;">
+                <div>
+                  <div class="toggle-label" style="font-size:11px;">마케팅 임원 자격 보유</div>
+                  <div class="toggle-sub" style="font-size:10px;">1년 이상 자격 유지자 해당</div>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="mkt-exec-toggle" onchange="toggleMktExec()">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div id="mkt-exec-input" class="hidden">
+                <div style="margin-bottom:6px;">
+                  <select id="mkt-exec-grade" onchange="calculate()" style="font-size:11px; padding:4px 8px;">
+                    <option value="이사">마케팅 이사 (분기 100만원)</option>
+                    <option value="상무" selected>마케팅 상무 (분기 200만원)</option>
+                    <option value="전무">마케팅 전무 (분기 300만원)</option>
+                    <option value="대표">마케팅 대표 (분기 450만원)</option>
+                  </select>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; gap:6px;">
+                  <span style="font-size:11px; color:var(--navy); font-weight:500; white-space:nowrap;">분기 통산 업적 (3개월)</span>
+                  <input class="amount-input" type="number" id="mkt-exec-perf" value="1000" min="0" step="50" onchange="calculate()" style="width:80px; font-size:11px; padding:4px 6px;">
+                </div>
+                <div class="unit-label" style="display:block; font-size:10px; margin-top:2px; color:var(--gray-text);">상무: 1,000만↑ | 전무: 1,750만↑ | 이사: 500만↑</div>
+                <div class="toggle-row" style="margin-top:6px;">
+                  <div>
+                    <div class="toggle-label" style="font-size:11px;">IQA 유지율 90% 이상</div>
+                    <div class="toggle-sub" style="font-size:10px;">미달 시 분기지원금 미지급</div>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" id="mkt-exec-iqa" onchange="calculate()" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div id="mkt-exec-result" style="margin-top:8px; font-size:11px; background:var(--orange-light); border-radius:6px; padding:6px 10px; color:var(--navy); line-height:1.6;"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 결과 패널 -->
+        <div class="panel" id="result-panel">
+          <div class="result-header" style="padding:10px 14px;">
+            <div>
+              <div class="total-label" style="font-size:11px;">본인 예상 실수령 총액</div>
+              <div class="total-amount" id="result-total" style="font-size:24px;">0만원</div>
+            </div>
+            <div class="total-badge" id="rank-badge">설계사 (RP)</div>
+          </div>
+          <div class="result-grid" id="summary-cards"></div>
+          <div class="section-divider"></div>
+          <div class="panel-title" style="font-size:12px;">상세 수수료 내역</div>
+          <table class="breakdown-table">
+            <thead>
+              <tr>
+                <th>항목</th>
+                <th>계산 근거</th>
+                <th class="text-right">금액 (만원)</th>
+              </tr>
+            </thead>
+            <tbody id="breakdown-body"></tbody>
+          </table>
+          <div id="warn-area"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let currentRank = 'rp';
+let members = [];
+let memberIdCounter = 0;
+
+const PRODUCT_CATALOG = {
+  p1: [
+    { label: 'ABL 우리WON세븐종신',      type: 'life',    commRate: 14.50, perfRate: 1.18 },
+    { label: '한화생명 제로백H종신',       type: 'life',    commRate: 14.61, perfRate: 1.19 },
+    { label: 'iM PLUS세븐UP종신',        type: 'life',    commRate: 15.02, perfRate: 1.16 },
+  ],
+  p2: [
+    { label: 'IBK · 평생보증받는 변액연금', type: 'life',   commRate: 5.43,  perfRate: 0.61 },
+    { label: 'iM마스터프로변액연금',        type: 'life',   commRate: 6.63,  perfRate: 0.62 },
+  ],
+  p3: [
+    { label: '메리츠 · 간편/어린이/종합',  type: 'nonlife', commRate: 18.50, perfRate: 1.00 },
+    { label: '흥국화재 플래티넘건강리셋',   type: 'nonlife', commRate: 15.50, perfRate: 1.00 },
+  ],
+};
+
+function getSelectedProduct(pid) {
+  const sel = document.getElementById('sel-' + pid);
+  const idx = sel ? (parseInt(sel.value) || 0) : 0;
+  return PRODUCT_CATALOG[pid][idx];
+}
+
+function onProductChange(pid) {
+  const p = getSelectedProduct(pid);
+  document.getElementById('name-' + pid).textContent = p.label;
+  document.getElementById('meta-' + pid).innerHTML =
+    '수수료율 ' + (p.commRate * 100).toFixed(0) + '%<br>평가업적 ' + (p.perfRate * 100).toFixed(0) + '%';
+  calculate();
+}
+
+const PRODUCTS = [
+  { id: 'p1', name: 'ABL 종신', type: 'life', commRate: 14.50, perfRate: 1.18, label: 'ABL 우리WON세븐종신' },
+  { id: 'p2', name: 'iM 변액연금', type: 'life', commRate: 6.63, perfRate: 0.62, label: 'iM 마스터프로변액연금' },
+  { id: 'p3', name: '메리츠 손보', type: 'nonlife', commRate: 18.50, perfRate: 1.00, label: '메리츠 건강보험' },
+];
+
+const MEMBER_PRODUCTS = [
+  { id: 'abl', name: 'ABL 종신', type: 'life', commRate: 14.50, perfRate: 1.18 },
+  { id: 'im', name: 'iM 변액연금', type: 'life', commRate: 6.63, perfRate: 0.62 },
+  { id: 'meritz', name: '메리츠 손보', type: 'nonlife', commRate: 18.50, perfRate: 1.00 },
+];
+
+const colors = ['#3498DB','#E74C3C','#2ECC71','#9B59B6','#E67E22','#1ABC9C'];
+
+function setRank(rank) {
+  currentRank = rank;
+  ['rp','sl','bm','jungchak'].forEach(r => {
+    const el = document.getElementById('tab-'+r);
+    if (el) el.classList.toggle('active', r===rank);
+  });
+
+  // 정착교육비 탭: 우측 전체를 안내 패널로 전환
+  const isJungchak = rank === 'jungchak';
+  document.getElementById('jungchak-panel').classList.toggle('hidden', !isJungchak);
+  document.getElementById('right-lower-grid').classList.toggle('hidden', isJungchak);
+
+  if (!isJungchak) {
+    const labels = { rp:'설계사 (RP)', sl:'SL', bm:'지점장 (BM)' };
+    document.getElementById('rank-badge').textContent = labels[rank] || '';
+    document.getElementById('rp-info-panel').classList.toggle('hidden', rank !== 'rp');
+    document.getElementById('bm-simple-input').classList.toggle('hidden', rank !== 'bm');
+    document.getElementById('bm-section').classList.toggle('hidden', rank !== 'bm');
+    document.getElementById('sl-detail-input').classList.toggle('hidden', rank !== 'sl');
+    calculate();
+  } else {
+    calcJungchak();
+  }
+}
+
+function calcJungchak() {
+  const income = parseFloat(document.getElementById('jc-income')?.value) || 0;
+  const ratio = parseFloat(document.getElementById('jc-ratio')?.value) || 30;
+  const opt = document.getElementById('jc-option')?.value || '3';
+  const el = document.getElementById('jc-result');
+  if (!el) return;
+
+  const maxPay = Math.floor(income * ratio / 100 / 10) * 10;  // 10만원 단위
+  const goalRates = { '1': 0.60, '2': 0.70, '3': 0.80 };
+  const periods = { '1': 12, '2': 18, '3': 24 };
+  const goalAmt = Math.round(maxPay * goalRates[opt]);
+  const mid1Rates = { '1': 0.25, '2': 0.20, '3': 0.15 };
+  const mid2Rates = { '1': 0.35, '2': 0.25, '3': 0.20 };
+  const mid1 = Math.round(goalAmt * mid1Rates[opt]);
+  const mid2 = Math.round(goalAmt * mid2Rates[opt]);
+  const monthlyTarget = Math.round(goalAmt / periods[opt]);
+
+  el.innerHTML = [
+    { label: '지급가능금액', val: fmt(maxPay)+'만원', color: '#185FA5', bg: '#E6F1FB' },
+    { label: `최종목표 (${Math.round(goalRates[opt]*100)}%)`, val: fmt(goalAmt)+'만원', color: '#854F0B', bg: '#FAEEDA' },
+    { label: `1차중간목표`, val: fmt(mid1)+'만원', color: '#444', bg: '#F4F6FB' },
+    { label: `월 평균 목표`, val: fmt(monthlyTarget)+'만원', color: '#2ECC71', bg: '#E8FAF1' },
+  ].map(c => `<div style="background:${c.bg}; border-radius:8px; padding:8px 10px;">
+    <div style="font-size:10px; color:${c.color}; margin-bottom:3px;">${c.label}</div>
+    <div style="font-size:15px; font-weight:700; color:${c.color};">${c.val}</div>
+  </div>`).join('');
+}
+
+function toggleShare() {
+  calculate();
+}
+
+function toggleMktExec() {
+  const on = document.getElementById('mkt-exec-toggle').checked;
+  document.getElementById('mkt-exec-input').classList.toggle('hidden', !on);
+  calculate();
+}
+
+function addMember() {
+  const id = ++memberIdCounter;
+  members.push({ id, type: 'normal', products: { abl: 0, im: 0, meritz: 50 } });
+  renderMembers();
+  calculate();
+}
+
+function removeMember(id) {
+  members = members.filter(m => m.id !== id);
+  renderMembers();
+  calculate();
+}
+
+function renderMembers() {
+  const list = document.getElementById('member-list');
+  list.innerHTML = '';
+  members.forEach((m, i) => {
+    const col = colors[i % colors.length];
+    const initial = '팀' + (i+1);
+    list.innerHTML += `
+    <div class="member-card" id="mcard-${m.id}">
+      <div class="member-header">
+        <div class="member-avatar" style="background:${col}">${initial}</div>
+        <div class="member-info">
+          <div class="member-name">팀원 ${i+1}</div>
+        </div>
+        <button class="member-remove" onclick="removeMember(${m.id})">×</button>
+      </div>
+            <div style="display:grid;grid-template-columns:1fr 80px;gap:6px;align-items:center;font-size:12px;">
+        <span style="color:var(--gray-text)"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#3498DB;margin-right:4px;"></span>${getSelectedProduct('p1').label}</span>
+        <input class="amount-input" type="number" value="${m.products.abl}" min="0" step="10" onchange="updateMemberProd(${m.id},'abl',this.value)" style="font-size:12px;padding:6px 8px;">
+        <span style="color:var(--gray-text)"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#3498DB;margin-right:4px;"></span>${getSelectedProduct('p2').label}</span>
+        <input class="amount-input" type="number" value="${m.products.im}" min="0" step="10" onchange="updateMemberProd(${m.id},'im',this.value)" style="font-size:12px;padding:6px 8px;">
+        <span style="color:var(--gray-text)"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#E67E22;margin-right:4px;"></span>${getSelectedProduct('p3').label}</span>
+        <input class="amount-input" type="number" value="${m.products.meritz}" min="0" step="10" onchange="updateMemberProd(${m.id},'meritz',this.value)" style="font-size:12px;padding:6px 8px;">
+      </div>
+    </div>`;
+  });
+}
+
+function updateMemberProd(id, prod, val) {
+  const m = members.find(m => m.id === id);
+  if (m) { m.products[prod] = parseFloat(val)||0; calculate(); }
+}
+
+function getInputs() {
+  const sp1 = getSelectedProduct('p1');
+  const sp2 = getSelectedProduct('p2');
+  const sp3 = getSelectedProduct('p3');
+  return {
+    p1: parseFloat(document.getElementById('p1').value)||0,
+    p2: parseFloat(document.getElementById('p2').value)||0,
+    p3: parseFloat(document.getElementById('p3').value)||0,
+    p1Rate: sp1.commRate, p1Perf: sp1.perfRate, p1Label: sp1.label,
+    p2Rate: sp2.commRate, p2Perf: sp2.perfRate, p2Label: sp2.label,
+    p3Rate: sp3.commRate, p3Perf: sp3.perfRate, p3Label: sp3.label,
+    jungchak: document.getElementById('jungchak').checked,
+    longterm: document.getElementById('longterm').checked,    bmPerf: parseFloat(document.getElementById('bm-total-perf')?.value)||700,
+    bmMemberCount: parseFloat(document.getElementById('bm-member-count')?.value)||0,
+    bmMemberAvgPerf: parseFloat(document.getElementById('bm-member-avg-perf')?.value)||0,    mktExecOn: document.getElementById('mkt-exec-toggle')?.checked || false,
+    mktExecGrade: document.getElementById('mkt-exec-grade')?.value || '상무',
+    mktExecPerf: parseFloat(document.getElementById('mkt-exec-perf')?.value)||0,
+    mktExecIqa: document.getElementById('mkt-exec-iqa')?.checked || false,
+  };
+}
+
+function calcProductComm(amount, commRate, perfRate) {
+  return {
+    comm: amount * commRate,
+    perf: amount * perfRate,
+  };
+}
+
+function calcHighEff(lifePerfOnly, totalPerfAll, isLongterm, jungchak) {
+  if (jungchak) return { amount: 0, note: '정착지원금 조건 — 부지급' };
+
+  if (isLongterm) {
+    // ─────────────────────────────────────────────────────
+    // 장기고능률 (규정 제3조~4조)
+    // ─────────────────────────────────────────────────────
+    // Grade 산정: 직전 1년 월평균 정산평가업적 기준 (전체 업적)
+    // 지급: 각 월 신계약 정산평가업적 × Grade별 구간별 지급율
+    //
+    // 지급율 테이블: Grade × 신계약정산평가업적 구간
+    // 구간은 해당 월 실적이 속하는 단일 구간에 해당 구간 지급율을 전체 업적에 적용
+    // (누진 아님 — 해당 구간 지급율 × 전체 신계약정산평가업적)
+    // ─────────────────────────────────────────────────────
+    const perf = totalPerfAll;  // 신계약 정산평가업적 (생보+손보 장기 합산)
+
+    // Grade 산정 (직전 1년 월평균 업적 기준 — 시뮬에서는 당월 업적으로 근사)
+    let grade, gradeLabel;
+    if (perf >= 500)      { grade = 'S'; gradeLabel = 'Grade-S'; }
+    else if (perf >= 300) { grade = '1'; gradeLabel = 'Grade-1'; }
+    else if (perf >= 200) { grade = '2'; gradeLabel = 'Grade-2'; }
+    else if (perf >= 100) { grade = '3'; gradeLabel = 'Grade-3'; }
+    else if (perf >= 70)  { grade = '4'; gradeLabel = 'Grade-4'; }
+    else if (perf >= 50)  { grade = '5'; gradeLabel = 'Grade-5'; }
+    else return { amount: 0, note: '장기고능률 — 업적 50만원 미만 (Grade 미해당)' };
+
+    // 구간별 지급율 테이블 (Grade × 신계약 정산평가업적 구간)
+    // [구간하한, 지급율%]  — 해당 구간 지급율을 전체 업적에 적용
+    const rateTable = {
+      'S': [[500,110],[300,105],[200,103],[100,90],[70,80],[50,70],[30,60]],
+      '1': [[500,105],[300,103],[200,100],[100,85],[70,75],[50,65],[30,55]],
+      '2': [[500,103],[300,100],[200, 95],[100,80],[70,70],[50,60],[30,50]],
+      '3': [[500,100],[300, 90],[200, 80],[100,70],[70,60],[50,50],[30,40]],
+      '4': [[500, 90],[300, 80],[200, 70],[100,60],[70,50],[50,40],[30,30]],
+      '5': [[500, 80],[300, 70],[200, 60],[100,50],[70,40],[50,30],[30,20]],
+    };
+
+    // 해당 월 신계약 정산평가업적이 속하는 구간의 지급율 적용
+    let rate = 0;
+    for (const [threshold, r] of rateTable[grade]) {
+      if (perf >= threshold) { rate = r; break; }
+    }
+    if (rate === 0) return { amount: 0, note: `${gradeLabel} — 30만원 미만 구간` };
+
+    // 지급액 = 신계약 정산평가업적 × 지급율
+    // 규정: "각 월 신계약 정산평가업적 × 구간별 지원율"
+    const amount = Math.round(perf * rate) / 100;
+    return {
+      amount,
+      note: `${gradeLabel} | 업적 ${perf.toFixed(0)}만원 → ${rate}% 구간 | ${perf.toFixed(0)}×${rate}% = ${amount.toFixed(0)}만원`
+    };
+
+  } else {
+    // ─────────────────────────────────────────────────────
+    // 고능률 (규정 제10조)
+    // ─────────────────────────────────────────────────────
+    // 구간 판단: 신계약 정산평가업적 전체 (손보 포함 — 구간 인정)
+    // 지급 기준: 생보 신계약 정산평가업적에만 지급율 적용
+    //            (손보·일반보험·자동차보험은 구간 인정, 지급 제외)
+    // ─────────────────────────────────────────────────────
+    const totalPerf = totalPerfAll;  // 구간 판단용 (손보 포함)
+    let rate = 0;
+    if      (totalPerf >= 500) rate = 50;
+    else if (totalPerf >= 300) rate = 40;
+    else if (totalPerf >= 200) rate = 30;
+    else if (totalPerf >= 100) rate = 20;
+    else if (totalPerf >= 50)  rate = 15;
+    if (rate === 0) return { amount: 0, note: '고능률 — 업적 50만원 미만' };
+
+    // 지급액 = 생보 정산평가업적 × 지급율 (손보 제외)
+    const amount = Math.round(lifePerfOnly * rate) / 100;
+    return {
+      amount,
+      note: `전체업적 ${totalPerf.toFixed(0)}만원 → ${rate}% 구간 | 생보업적 ${lifePerfOnly.toFixed(0)}만원×${rate}% = ${amount.toFixed(0)}만원 (손보 제외)`
+    };
+  }
+}
+
+function calculate() {
+  const inp = getInputs();
+
+  // 총 보험료 표기 업데이트
+  const totalPremiumDisplay = inp.p1 + inp.p2 + inp.p3;
+  const el = document.getElementById('total-premium-display');
+  if (el) {
+    el.textContent = totalPremiumDisplay.toLocaleString('ko-KR');
+    el.style.transform = 'scale(1.08)';
+    setTimeout(() => { el.style.transform = 'scale(1)'; }, 150);
+  }
+  // 평가업적 업데이트 (r1,r2,r3 계산 전이므로 직접 계산)
+  const totalPerfPreview = inp.p1 * (inp.p1Perf||1.18) + inp.p2 * (inp.p2Perf||0.62) + inp.p3 * (inp.p3Perf||1.00);
+  const perfEl = document.getElementById('total-perf-display');
+  if (perfEl) perfEl.textContent = Math.round(totalPerfPreview).toLocaleString('ko-KR');
+
+  // 본인 수수료 계산
+  const r1 = calcProductComm(inp.p1, inp.p1Rate, inp.p1Perf);
+  const r2 = calcProductComm(inp.p2, inp.p2Rate, inp.p2Perf);
+  const r3 = calcProductComm(inp.p3, inp.p3Rate, inp.p3Perf);
+
+  let selfComm = r1.comm + r2.comm + r3.comm;
+  const selfLifePerf = r1.perf + r2.perf;
+  const selfTotalPerf = selfLifePerf + r3.perf;
+  const selfTotalPremium = inp.p1 + inp.p2 + inp.p3;
+
+
+  // 고능률/장기고능률 (본인)
+  const heff = calcHighEff(selfLifePerf, selfTotalPerf, inp.longterm, inp.jungchak);
+
+  let selfNet = selfComm + heff.amount;
+
+  // SL 수당
+  let slWage = 0;
+  let slWageDetail = [];
+  let memberRows = [];
+
+
+  if (currentRank === 'sl' || currentRank === 'bm') {
+    if (currentRank === 'bm') {
+      const bmNormal = inp.bmMemberCount;
+      const bmAvgPerf = inp.bmMemberAvgPerf;
+      const bmNormalTotalPerf = bmNormal * bmAvgPerf;
+
+      // 본인 업적 표시 업데이트
+      const selfPerfEl = document.getElementById('bm-self-perf-display');
+      if (selfPerfEl) selfPerfEl.textContent = fmt(selfTotalPerf) + '만원';
+
+      // 일반 지점원
+      if (bmNormal > 0 && bmAvgPerf > 0) {
+        memberRows.push({ name: `일반 지점원 ${bmNormal}명`, type: 'bm-simple', count: bmNormal, avgPerf: bmAvgPerf, perf: bmNormalTotalPerf });
+      }
+
+
+      // 요약 업데이트
+      const sumEl = document.getElementById('bm-member-summary');
+      if (sumEl) {
+        const totalBranchPerf = selfTotalPerf + bmNormalTotalPerf;
+        sumEl.innerHTML =
+          `<b>본인</b> ${fmt(selfTotalPerf)}만원` +
+          (bmNormal > 0 ? ` + <b>일반지점원 ${bmNormal}명</b> ${fmt(bmNormalTotalPerf)}만원` : '') +
+          `<br>= <b>지점 전체업적 ${fmt(totalBranchPerf)}만원</b>`;
+      }
+    } else {
+      // SL: members 배열 기반 팀원 계산
+      members.forEach((m, i) => {
+        const mr1 = calcProductComm(m.products.abl, inp.p1Rate, inp.p1Perf);
+        const mr2 = calcProductComm(m.products.im, inp.p2Rate, inp.p2Perf);
+        const mr3 = calcProductComm(m.products.meritz, inp.p3Rate, inp.p3Perf);
+        const mComm = mr1.comm + mr2.comm + mr3.comm;
+        const mLifePerf = mr1.perf + mr2.perf;
+        const mTotalPerf = mLifePerf + mr3.perf;
+        const mHeff = calcHighEff(mLifePerf, mTotalPerf, inp.longterm, false);
+        const mTotalIncome = mComm + mHeff.amount;
+        slWageDetail.push({ name: `팀원${i+1}`, perf: mTotalPerf, wage: mTotalPerf * 0.35 });
+        memberRows.push({
+          name: `팀원${i+1}`,
+          type: 'normal',
+          comm: mComm,
+          perf: mTotalPerf,
+          heffAmount: mHeff.amount,
+          heffNote: mHeff.note,
+          totalIncome: mTotalIncome
+        });
+      });
+    } // end SL else block
+    slWage = slWageDetail.reduce((s, d) => s + d.wage, 0);
+  }
+
+  // 지점장 Override
+  let bmOverride = 0, bmOpex = 0, bmRate = 0, bmTotalPerf = 0;
+  if (currentRank === 'bm') {
+    bmTotalPerf += selfTotalPerf;
+    memberRows.forEach(m => {
+      if (m.type === 'bm-simple') bmTotalPerf += m.perf;
+    });
+    if (bmTotalPerf >= 700) bmRate = 100;
+    else if (bmTotalPerf >= 300) bmRate = 90;
+    else if (bmTotalPerf >= 200) bmRate = 80;
+    else bmRate = 70;
+    bmOverride = bmTotalPerf * bmRate / 100;
+    bmOpex = bmTotalPerf * 0.10;
+  }
+
+  // 상세 내역 rows (선언을 첫 사용 전으로 이동)
+  const rows = [];
+
+  // 본인 실수령 구성
+  if (currentRank === 'sl' || currentRank === 'bm') {
+    memberRows.forEach(m => {
+      // 일반팀원: 수수료+고능률은 팀원 본인 수령 (참고용 표시)
+        rows.push({
+          item: `<span class="tag-sm" style="background:#EEE;color:#444">${m.name}</span> 수수료 (팀원 수령)`,
+          basis: `수수료 ${fmt(m.comm)}만원 | 업적 ${fmt(m.perf)}만원`,
+          amount: fmt(m.comm),
+          cls: 'text-muted'
+        });
+        rows.push({
+          item: `<span class="tag-sm" style="background:#EEE;color:#444">${m.name}</span> ${inp.longterm?'장기고능률':'고능률'} (팀원 수령)`,
+          basis: m.heffAmount > 0 ? m.heffNote : `업적 ${fmt(m.perf)}만원 — 구간 미달`,
+          amount: m.heffAmount > 0 ? fmt(m.heffAmount) : '0',
+          cls: 'text-muted'
+        });
+    });
+    if (currentRank === 'sl') slWageDetail.forEach(d => {
+      rows.push({ item: `<span class="tag-sm tag-non">SL수당</span> ${d.name} 업적(본인제외) × 35%`, basis: `${fmt(d.perf)}만원 × 35%`, amount: '+'+fmt(d.wage), cls: 'text-positive' });
+    });
+  }
+
+  if (currentRank === 'bm') {
+    rows.push({ item: `<span class="tag-sm tag-share">BM</span> 지점장 Override (본인 포함)`, basis: `지점 전체업적 ${fmt(bmTotalPerf)}만원 (본인 ${fmt(selfTotalPerf)}만원 포함) × ${bmRate}%`, amount: '+'+fmt(bmOverride), cls: 'text-positive' });
+    rows.push({ item: `<span class="tag-sm tag-share">BM</span> 운영비`, basis: `지점업적 ${fmt(inp.bmPerf)}만원 × 10%`, amount: '+'+fmt(bmOpex), cls: 'text-positive' });
+  }
+
+  // 분기지원금 상세 행
+  if (inp.mktExecOn) {
+    rows.push({
+      item: `<span class="tag-sm" style="background:#E8FAF1;color:#1A7A4A">마케팅${inp.mktExecGrade}</span> 분기지원금`,
+      basis: mktExecNote,
+      amount: mktExecMonthly > 0 ? '+'+mktExecMonthly.toFixed(1) : '—',
+      cls: mktExecMonthly > 0 ? 'text-positive' : 'text-muted'
+    });
+  }
+
+  // 마케팅 임원 분기지원금 계산
+  const MKT_EXEC_TABLE = {
+    '이사': { minPerf: 500,  quarterly: 100 },
+    '상무': { minPerf: 1000, quarterly: 200 },
+    '전무': { minPerf: 1750, quarterly: 300 },
+    '대표': { minPerf: 1750, quarterly: 450 },
+  };
+  let mktExecMonthly = 0;
+  let mktExecNote = '';
+  if (inp.mktExecOn) {
+    const mx = MKT_EXEC_TABLE[inp.mktExecGrade];
+    const perfOk = inp.mktExecPerf >= mx.minPerf;
+    const iqaOk = inp.mktExecIqa;
+    if (perfOk && iqaOk) {
+      mktExecMonthly = mx.quarterly / 3;
+      mktExecNote = `마케팅${inp.mktExecGrade} | 분기업적 ${fmt(inp.mktExecPerf)}만원 (기준 ${fmt(mx.minPerf)}만원 이상) | IQA 90% 충족 → 분기 ${fmt(mx.quarterly)}만원 (월환산 ${mktExecMonthly.toFixed(1)}만원)`;
+    } else {
+      mktExecNote = !perfOk
+        ? `분기업적 ${fmt(inp.mktExecPerf)}만원 — 기준 ${fmt(mx.minPerf)}만원 미달 (미지급)`
+        : 'IQA 유지율 90% 미달 (미지급)';
+    }
+    const mktEl = document.getElementById('mkt-exec-result');
+    if (mktEl) {
+      mktEl.innerHTML = mktExecMonthly > 0
+        ? `✅ 지급 대상 — 분기 <b>${fmt(mx.quarterly)}만원</b> (월환산 <b>${mktExecMonthly.toFixed(1)}만원</b>)`
+        : `❌ ${mktExecNote}`;
+      mktEl.style.background = mktExecMonthly > 0 ? 'var(--green-light)' : 'var(--red-light)';
+    }
+  }
+
+  const grandTotal = selfNet + slWage + bmOverride + bmOpex + mktExecMonthly;
+  document.getElementById('result-total').textContent = fmt(grandTotal) + '만원';
+
+  // 요약 카드
+  const cards = [
+    { label: '기본 수수료', value: fmt(selfComm), sub: `보험료 ${fmt(selfTotalPremium)}만원 기준`, cls: 'rc-blue' },
+    { label: heff.amount > 0 ? (inp.longterm?'장기고능률':'고능률') : '고능률/장기고능률', value: heff.amount > 0 ? '+'+fmt(heff.amount) : '0', sub: heff.note, cls: heff.amount > 0 ? 'rc-green' : 'rc-gray' },
+    currentRank==='sl' && slWage > 0 ? { label: 'SL 수당', value: '+'+fmt(slWage), sub: `산하 업적(본인제외) × 35%`, cls: 'rc-orange' } : null,
+    currentRank==='bm' ? { label: 'BM Override', value: '+'+fmt(bmOverride), sub: `지점 전체업적(본인포함) ${fmt(bmTotalPerf)}만원 × ${bmRate}%`, cls: 'rc-purple' } : null,
+    currentRank==='bm' ? { label: '운영비', value: '+'+fmt(bmOpex), sub: `지점 전체업적 × 10%`, cls: 'rc-orange' } : null,
+    (inp.mktExecOn && mktExecMonthly > 0) ? { label: `마케팅${inp.mktExecGrade} 분기지원금`, value: '+'+mktExecMonthly.toFixed(1), sub: `분기 ${fmt(MKT_EXEC_TABLE[inp.mktExecGrade].quarterly)}만원 ÷ 3`, cls: 'rc-green' } : null,
+  ].filter(Boolean);
+
+  document.getElementById('summary-cards').innerHTML = cards.map(c => `
+    <div class="result-card ${c.cls}">
+      <div class="result-card-label">${c.label}</div>
+      <div class="result-card-value">${c.value}<span style="font-size:13px;">만원</span></div>
+      <div class="result-card-sub">${c.sub}</div>
+    </div>
+  `).join('');
+
+  // 상세 내역 (상품별 rows 추가)
+  [[inp.p1, inp.p1Label, 'life', r1],[inp.p2, inp.p2Label, 'life', r2],[inp.p3, inp.p3Label, 'nonlife', r3]].forEach(([amt,name,type,r]) => {
+    if (amt > 0) rows.push({
+      item: `<span class="tag-sm ${type==='life'?'tag-life':'tag-non'}">${type==='life'?'생보':'손보'}</span> ${name}`,
+      basis: `${fmt(amt)}만원 × 수수료율 | 업적 ${fmt(r.perf)}만원`,
+      amount: fmt(r.comm),
+      cls: 'text-positive'
+    });
+  });
+
+  rows.push({ item: '<strong>본인 기본 수수료 소계</strong>', basis: `정산평가업적 ${fmt(selfTotalPerf)}만원 (생보 ${fmt(selfLifePerf)}만원)`, amount: fmt(selfComm), cls: 'subtotal' });
+  rows.push({ item: inp.longterm ? '<span class="tag-sm tag-life">장기고능률</span> 장기고능률 수수료' : '<span class="tag-sm tag-life">고능률</span> 고능률 수수료', basis: inp.jungchak ? '정착지원금 조건 — 부지급' : heff.note, amount: inp.jungchak ? '—' : fmt(heff.amount), cls: inp.jungchak || heff.amount===0 ? 'text-muted' : 'text-positive' });
+
+  const basisParts = [`본인 ${fmt(selfNet)}만원`];
+  // 일반팀원 고능률은 팀원 본인 수령 — 팀장 실수령 구성에서 제외
+  if (currentRank === 'sl' && slWage > 0) basisParts.push(`SL수당 ${fmt(slWage)}만원`);
+  if (bmOverride > 0) basisParts.push(`Override ${fmt(bmOverride)}만원`);
+  if (mktExecMonthly > 0) basisParts.push(`마케팅${inp.mktExecGrade}지원금 ${mktExecMonthly.toFixed(1)}만원`);
+  rows.push({ item: '<strong>💰 본인 실수령 총액</strong>', basis: basisParts.join(' + '), amount: fmt(grandTotal)+'만원', cls: 'subtotal', highlight: true });
+
+  document.getElementById('breakdown-body').innerHTML = rows.map(r => `
+    <tr class="${r.cls==='subtotal'?'subtotal':''}">
+      <td>${r.item}</td>
+      <td class="text-muted" style="font-size:12px;">${r.basis}</td>
+      <td class="text-right ${r.cls}">${r.amount}</td>
+    </tr>
+  `).join('');
+
+  // 경고
+  const warns = [];
+  if (inp.jungchak) {
+    warns.push({ type: 'info', text: '💡 13차월부터 장기고능률 수수료가 적용됩니다. 정착지원금(24차월)과 병행 수령 가능하며, 25차월부터는 고능률로 전환됩니다.' });
+  }
+  if (selfTotalPerf >= 280 && selfTotalPerf < 300 && !inp.jungchak) {
+    warns.push({ type: 'warn', text: `⚠️ 현재 정산평가업적 ${fmt(selfTotalPerf)}만원으로 고능률 300만원 조건에 <strong>${fmt(300-selfTotalPerf)}만원 부족</strong>합니다. 소폭 추가 판매 시 고능률 40% 구간 진입이 가능합니다.` });
+  }
+  if (currentRank === 'sl' && members.length < 2) {
+    warns.push({ type: 'info', text: '💡 SL 자격 유지를 위해 본인 제외 가동인원 3명 이상 (2개월 연속 미달 시 해임), 산하 정산평가업적 100만원 이상을 유지해야 합니다.' });
+  }
+
+  document.getElementById('warn-area').innerHTML = warns.map(w => `
+    <div class="${w.type==='warn'?'warn-banner':'info-banner'}" style="margin-top:10px;">
+      <div class="${w.type==='warn'?'warn-text':'info-text'}">${w.text}</div>
+    </div>
+  `).join('');
+}
+
+function fmt(n) {
+  if (!n && n !== 0) return '—';
+  return Math.round(n).toLocaleString('ko-KR');
+}
+
+// 초기 실행
+setRank('rp');
+</script>
+  <div style="text-align:center; padding:18px 24px 24px; font-size:11px; color:#999; border-top:0.5px solid #eee; margin-top:8px;">
+    본 자료는 제도 수정에 따라 변경될 수 있으며, 제출된 값은 확정값이 아닐 수 있습니다.
+  </div>
+</body>
+</html>
